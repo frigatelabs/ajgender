@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jonathan &amp; Abbey's Gender Reveal</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --sand: #e8dfd0;
+    --sand-light: #f2ece0;
+    --sand-deep: #d9cbb2;
+    --driftwood: #8a7d68;
+    --stone-text: #4a4436;
+    --navy: #2c4258;
+    --nantucket-red: #c8452e;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--sand);
+    background-image: radial-gradient(circle at 50% 0%, var(--sand-light) 0%, var(--sand) 60%, var(--sand-deep) 100%);
+    color: var(--stone-text);
+    padding: 24px;
+    transition: background 1.8s ease, color 1.8s ease;
+    overflow: hidden;
+    position: relative;
+  }
+  .card { max-width: 480px; width: 100%; text-align: center; z-index: 3; position: relative; }
+  .logo { width: 140px; height: auto; margin: 0 auto 20px; display: block; }
+  .backdrop { position: fixed; inset: 0; z-index: 0; opacity: 0; transition: opacity 1.6s ease; pointer-events: none; overflow: hidden; }
+  .backdrop img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .backdrop-gradient { position: absolute; inset: 0; }
+  .backdrop-scrim { position: fixed; inset: 0; z-index: 1; background: rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 1.6s ease; pointer-events: none; }
+  .water { position: fixed; left: 0; right: 0; bottom: 0; height: 110px; z-index: 2; pointer-events: none; overflow: hidden; }
+  .water svg { position: absolute; bottom: 0; left: 0; width: 200%; height: 100%; }
+  .wave-back { animation: waveDrift 34s linear infinite; opacity: 0.55; }
+  .wave-front { animation: waveDrift 22s linear infinite reverse; opacity: 0.85; }
+  @keyframes waveDrift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .step { display: none; }
+  .step.active { display: block; animation: fadeIn 1s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  h1 { font-size: 24px; font-weight: 600; margin-bottom: 10px; transition: opacity 1.2s ease; }
+  p.sub { font-size: 15px; color: var(--driftwood); margin-bottom: 26px; line-height: 1.55; transition: opacity 1.2s ease; }
+  .btn-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
+  button {
+    font-size: 16px; font-weight: 500; padding: 14px 26px; border-radius: 12px;
+    border: 1.5px solid var(--sand-deep); background: #fff; cursor: pointer;
+    color: var(--stone-text); transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  button:hover { border-color: var(--driftwood); }
+  button:active { transform: scale(0.97); }
+  button.primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+  button.reveal-btn {
+    background: linear-gradient(135deg, #35597a 0%, #24384a 100%);
+    color: #fff; border-color: #1f3140; font-weight: 600;
+    box-shadow: 0 6px 18px rgba(31, 49, 64, 0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  button.reveal-btn:hover { transform: translateY(-2px); box-shadow: 0 9px 22px rgba(31, 49, 64, 0.5), inset 0 1px 0 rgba(255,255,255,0.15); border-color: #1f3140; }
+  button.reveal-btn:active { transform: scale(0.97) translateY(0); }
+  button.girl-btn:hover { border-color: var(--nantucket-red); }
+  button.locked-btn {
+    background: var(--sand-deep); color: var(--driftwood); border-color: var(--sand-deep);
+    cursor: default; opacity: 0.75;
+  }
+  button.locked-btn:hover { border-color: var(--sand-deep); }
+  button.locked-btn:active { transform: none; }
+  .status { margin-top: 18px; font-size: 14px; color: var(--driftwood); min-height: 20px; }
+  .big-icon { font-size: 84px; line-height: 1; margin-bottom: 12px; }
+  .result-text { font-size: 36px; font-weight: 700; margin-top: 4px; }
+  .footer-note { font-size: 13px; color: var(--driftwood); margin-top: 30px; opacity: 0.8; }
+  .loading-bar-wrap { width: 100%; height: 6px; background: var(--sand-deep); border-radius: 4px; margin: 26px 0 10px; overflow: hidden; }
+  .loading-bar { height: 100%; width: 0%; background: var(--navy); border-radius: 4px; }
+  .loading-panel { background: rgba(242, 236, 224, 0.55); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); border-radius: 22px; padding: 34px 26px; transition: opacity 1.2s ease; box-shadow: 0 10px 30px rgba(44,66,88,0.18); }
+  .loading-panel h1 { color: #000; }
+  .loading-panel p.sub { color: #1a1a1a; }
+  .loading-panel .loading-line { color: #1a1a1a; }
+  .loading-panel .loading-bar-wrap { background: var(--sand-deep); }
+  .loading-panel .loading-bar { background: var(--navy); }
+  .loading-badge { font-size: 40px; margin-bottom: 10px; display: inline-block; animation: bob 4.5s ease-in-out infinite; }
+  .loading-icon-img { width: 64px; height: auto; display: inline-block; animation: bounce 1.3s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
+  .loading-visual-legacy-removed { display: none; }
+  .loading-line { font-size: 14px; color: var(--driftwood); min-height: 20px; }
+  .boat { font-size: 40px; display: inline-block; animation: bob 4.5s ease-in-out infinite; }
+  @keyframes bob { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(2deg); } }
+  .dachshund {
+    position: fixed;
+    left: 110%;
+    bottom: 18px;
+    width: 150px;
+    height: auto;
+    z-index: 5;
+    transform: translateX(-50%);
+    animation: rundachshund 2.4s ease-out forwards, idlehop 0.9s ease-in-out 2.4s infinite;
+  }
+  @keyframes rundachshund {
+    0%   { left: 110%; }
+    70%  { left: 50%; }
+    100% { left: 50%; }
+  }
+  @keyframes idlehop {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50%      { transform: translateX(-50%) translateY(-14px); }
+  }
+  .confetti { position: fixed; top: -10px; width: 10px; height: 16px; opacity: 0.9; border-radius: 2px; animation: fall linear forwards; z-index: 4; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(360deg); opacity: 0.3; } }
+  .role-btn { width: 220px; }
+  .waiting-boat { font-size: 60px; margin: 20px 0; animation: bob 4.5s ease-in-out infinite; }
+  .refresh-hint { font-size: 13px; color: var(--driftwood); margin-top: 20px; }
+  a.reveal-link { word-break: break-all; font-size: 13px; color: var(--navy); display: block; margin-top: 14px; }
+</style>
+</head>
+<body id="body">
+
+<div class="backdrop" id="loading-backdrop"></div>
+<div class="backdrop-scrim" id="loading-scrim"></div>
+
+<div class="water">
+  <svg class="wave-back" viewBox="0 0 800 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,50 C100,90 200,10 300,50 C400,90 500,10 600,50 C700,90 800,10 900,50 C1000,90 1100,10 1200,50 C1300,90 1400,10 1500,50 C1600,90 1600,90 1600,100 L0,100 Z" fill="#aab2b8"></path>
+  </svg>
+  <svg class="wave-front" viewBox="0 0 800 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,60 C100,20 200,100 300,60 C400,20 500,100 600,60 C700,20 800,100 900,60 C1000,20 1100,100 1200,60 C1300,20 1400,100 1500,60 C1600,20 1600,20 1600,100 L0,100 Z" fill="#2c4258"></path>
+  </svg>
+</div>
+
+<div class="card">
+
+  <!-- STEP 1: role picker -->
+  <div class="step active" id="step-role">
+    <img class="logo" src="images/aj-logo.png" alt="A &amp; J">
+    <h1>Jonathan &amp; Abbey are having a baby! 👶🏻</h1>
+    <p class="sub">Pick your part: keep our secret, or come find out with us.</p>
+    <div class="btn-row" style="flex-direction:column; align-items:center;">
+      <button class="role-btn" id="btn-role-friend">I'm the friend with the results 🤫</button>
+      <button class="role-btn reveal-btn" id="btn-role-couple">Reveal the Gender 🎉</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: friend submit -->
+  <div class="step" id="step-friend">
+    <img class="logo" src="images/aj-logo.png" alt="A &amp; J">
+    <h1>Hey friend 👋</h1>
+    <p class="sub">You've got the envelope / test results. Pick what it says — this is locked in the moment you tap it, and Jonathan &amp; Abbey won't see who told the app, just the answer, when they open their reveal.</p>
+    <div class="btn-row">
+      <button class="primary" id="btn-submit-boy">It's a boy ⚓️</button>
+      <button class="girl-btn primary" id="btn-submit-girl" style="background:var(--nantucket-red); border-color:var(--nantucket-red);">It's a girl 🎀</button>
+    </div>
+    <div class="status" id="friend-status"></div>
+  </div>
+
+  <div class="step" id="step-friend-done">
+    <div class="big-icon">✅</div>
+    <h1>Locked in.</h1>
+    <p class="sub" id="friend-done-sub">Your part is done. Send this exact link to Jonathan &amp; Abbey and let them tap "We're Jonathan &amp; Abbey" when they're ready with the iPad/TV.</p>
+    <div id="friend-fallback-wrap" style="display:none; margin-top:6px;">
+      <p class="sub" style="margin-bottom:10px; font-size:13px;">If they're opening this as a downloaded file, send them this exact link instead — it carries the result along with it:</p>
+      <a class="reveal-link" id="friend-fallback-link" href="#" target="_blank"></a>
+      <button id="btn-copy-fallback" style="margin-top:12px;">Copy link</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: couple journey -->
+  <div class="step" id="step-couple-intro">
+    <img class="logo" src="images/aj-logo.png" alt="A &amp; J">
+    <div class="boat">⛵</div>
+    <h1>Ready, Captain?</h1>
+    <p class="sub">Before we get there — a little of how we got here.</p>
+    <button class="primary" id="btn-start-journey">We're ready</button>
+  </div>
+
+  <!-- STEP 4: loading (doubles as the journey through our history) -->
+  <div class="step" id="step-loading">
+    <div class="loading-panel" id="loading-panel">
+      <div class="loading-badge" id="loading-icon">⛵</div>
+      <h1 id="loading-title">Pulling up the anchor...</h1>
+      <p class="sub" id="loading-sub"></p>
+      <div class="loading-bar-wrap"><div class="loading-bar" id="loading-bar"></div></div>
+      <div class="loading-line" id="loading-line">Charting a course...</div>
+    </div>
+  </div>
+
+  <!-- STEP 4b: waiting on friend -->
+  <div class="step" id="step-couple-waiting">
+    <div class="waiting-boat">⛵</div>
+    <h1>Still out at sea...</h1>
+    <p class="sub">Your friend hasn't submitted the result yet. Check back once they've tapped their answer — reopen this same link and choose "We're Jonathan &amp; Abbey" again.</p>
+    <button id="btn-recheck">Check again</button>
+  </div>
+
+  <!-- STEP 5: result -->
+  <div class="step" id="step-result">
+    <img class="logo" src="images/aj-logo.png" alt="A &amp; J">
+    <div class="big-icon" id="result-icon">⚓️</div>
+    <div class="result-text" id="result-text">It's a boy!</div>
+    <p class="footer-note">Jonathan, Abbey &amp; Myka 🐾</p>
+  </div>
+
+</div>
+
+<script>
+  const STORAGE_KEY = 'jonathan-abbey-gender-reveal-result';
+  const body = document.getElementById('body');
+
+  function show(id) {
+    document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ---- role: friend ----
+  document.getElementById('btn-role-friend').addEventListener('click', () => show('step-friend'));
+
+  // If the friend already submitted a result (checked via storage, or via a
+  // ?result=boy/girl link), lock the friend button so it can't be re-picked.
+  (async function checkAlreadySubmitted() {
+    const btn = document.getElementById('btn-role-friend');
+    let alreadyIn = false;
+    try {
+      const res = await window.storage.get(STORAGE_KEY, true);
+      alreadyIn = !!(res && res.value);
+    } catch (e) {
+      alreadyIn = false;
+    }
+    if (!alreadyIn) {
+      const params = new URLSearchParams(window.location.search);
+      const linked = params.get('result');
+      if (linked === 'boy' || linked === 'girl') alreadyIn = true;
+    }
+    if (alreadyIn) {
+      btn.textContent = 'The results are in ✓';
+      btn.classList.add('locked-btn');
+      btn.disabled = true;
+    }
+  })();
+
+  async function submitResult(value) {
+    const statusEl = document.getElementById('friend-status');
+    statusEl.textContent = 'Saving...';
+    let storageWorked = false;
+    try {
+      const res = await window.storage.set(STORAGE_KEY, value, true);
+      storageWorked = !!res;
+    } catch (e) {
+      storageWorked = false;
+    }
+
+    // Always build a fallback link that carries the result in the URL itself.
+    // This works even when window.storage isn't available (e.g. the file was
+    // downloaded and opened directly instead of viewed inside Claude).
+    const url = new URL(window.location.href);
+    url.searchParams.delete('reveal');
+    url.searchParams.set('result', value);
+    const fallbackLink = url.toString();
+
+    document.getElementById('friend-fallback-link').href = fallbackLink;
+    document.getElementById('friend-fallback-link').textContent = fallbackLink;
+    document.getElementById('friend-fallback-wrap').style.display = 'block';
+
+    if (!storageWorked) {
+      document.getElementById('friend-done-sub').textContent =
+        "Your part is done — but this browser can't save it automatically, so use the backup link below instead of the plain one.";
+    }
+
+    statusEl.textContent = '';
+    show('step-friend-done');
+
+    document.getElementById('btn-copy-fallback').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(fallbackLink);
+        document.getElementById('btn-copy-fallback').textContent = 'Copied!';
+        setTimeout(() => { document.getElementById('btn-copy-fallback').textContent = 'Copy link'; }, 1500);
+      } catch (e) {
+        // Clipboard API may be blocked; the link is still visible/selectable.
+      }
+    };
+  }
+  document.getElementById('btn-submit-boy').addEventListener('click', () => submitResult('boy'));
+  document.getElementById('btn-submit-girl').addEventListener('click', () => submitResult('girl'));
+
+  // ---- role: couple ----
+  document.getElementById('btn-role-couple').addEventListener('click', () => show('step-couple-intro'));
+  document.getElementById('btn-start-journey').addEventListener('click', runLoadingSequence);
+  document.getElementById('btn-recheck').addEventListener('click', runLoadingSequence);
+
+  function launchConfetti(color) {
+    for (let i = 0; i < 22; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = color;
+      c.style.animationDuration = (5.5 + Math.random() * 3) + 's';
+      c.style.animationDelay = (Math.random() * 0.6) + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 4200);
+    }
+  }
+
+  function spawnDachshund() {
+    const d = document.createElement('img');
+    d.className = 'dachshund';
+    d.src = MYKA_PHOTO;
+    d.alt = 'Myka';
+    document.body.appendChild(d);
+  }
+
+  const MYKA_PHOTO = 'images/myka.png';
+  const NANTUCKET_PHOTO = 'images/nantucket.jpg';
+
+  // Placeholder gradients for beats that don't have a photo picked yet.
+  const HILLSBORO_PHOTO = 'images/hillsboro-inlet.jpg';
+  const GRADIENT_ANCHOR = 'linear-gradient(135deg, #2c4258 0%, #6fa8d8 100%)';
+  const GRADIENT_BEACH = 'linear-gradient(135deg, #e8dfd0 0%, #c8452e 120%)';
+  const GRADIENT_MYKA = 'linear-gradient(135deg, #c8452e 0%, #8a7d68 100%)';
+  const GRADIENT_PORT = 'linear-gradient(135deg, #6fa8d8 0%, #2c4258 100%)';
+
+  function renderVisual(beat) {
+    const backdrop = document.getElementById('loading-backdrop');
+    if (beat.img) {
+      backdrop.style.backgroundImage = `url('${beat.img}')`;
+      backdrop.style.backgroundSize = 'cover';
+      backdrop.style.backgroundPosition = 'center';
+    } else {
+      backdrop.style.backgroundImage = beat.gradient;
+      backdrop.style.backgroundSize = 'auto';
+    }
+    const iconEl = document.getElementById('loading-icon');
+    if (beat.iconImg) {
+      iconEl.innerHTML = `<img src="${beat.iconImg}" alt="Myka" class="loading-icon-img">`;
+    } else {
+      iconEl.textContent = beat.img ? '' : (beat.icon || '');
+    }
+  }
+
+  async function runLoadingSequence() {
+    show('step-loading');
+    const bar = document.getElementById('loading-bar');
+    const line = document.getElementById('loading-line');
+    const title = document.getElementById('loading-title');
+    const sub = document.getElementById('loading-sub');
+    const backdrop = document.getElementById('loading-backdrop');
+    const scrim = document.getElementById('loading-scrim');
+
+    const beats = [
+      { icon: '⛵', gradient: GRADIENT_ANCHOR, title: 'Pulling up the anchor...', sub: '', line: 'Charting a course...' },
+      { img: HILLSBORO_PHOTO, title: 'Passing by Hillsboro Inlet...', sub: 'Where Jonathan got down on one knee and Abbey said yes.', line: 'Reading the currents...' },
+      { img: NANTUCKET_PHOTO, title: 'Arriving in Nantucket...', sub: 'We said "I do" with our family around us — and later found out we\'d be three (plus Myka).', line: 'Rounding the harbor...' },
+      { iconImg: MYKA_PHOTO, gradient: GRADIENT_MYKA, title: 'Greeted by Myka...', sub: 'Our little red dachshund, about to become the world\'s most unimpressed big sibling.', line: 'Raising the sails...' },
+      { icon: '⛵', gradient: GRADIENT_PORT, title: 'Almost there...', sub: '', line: 'Coming into port...' },
+    ];
+    const stepDuration = 9500; // ms per beat
+    const crossfade = 1800; // ms fade for the backdrop + text swap
+    const totalDuration = beats.length * stepDuration;
+
+    // Fade the full-screen backdrop + scrim in behind the wave
+    backdrop.style.opacity = '1';
+    scrim.style.opacity = '1';
+
+    // Smooth, continuous progress bar over the full sequence
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    void bar.offsetWidth; // force reflow so the transition below actually starts from 0%
+    bar.style.transition = `width ${totalDuration}ms linear`;
+    requestAnimationFrame(() => { bar.style.width = '100%'; });
+
+    // First beat
+    renderVisual(beats[0]);
+    title.textContent = beats[0].title;
+    sub.textContent = beats[0].sub;
+    line.textContent = beats[0].line;
+
+    for (let i = 0; i < beats.length; i++) {
+      await new Promise(r => setTimeout(r, stepDuration - crossfade));
+      if (i < beats.length - 1) {
+        const next = beats[i + 1];
+        backdrop.style.opacity = '0';
+        title.style.opacity = '0';
+        sub.style.opacity = '0';
+        await new Promise(r => setTimeout(r, crossfade));
+        renderVisual(next);
+        title.textContent = next.title;
+        sub.textContent = next.sub;
+        line.textContent = next.line;
+        backdrop.style.opacity = '1';
+        title.style.opacity = '1';
+        sub.style.opacity = '1';
+      } else {
+        await new Promise(r => setTimeout(r, crossfade));
+      }
+    }
+
+    // Fade the backdrop out before landing on the waiting/result screen
+    backdrop.style.opacity = '0';
+    scrim.style.opacity = '0';
+
+    let value = null;
+    try {
+      const res = await window.storage.get(STORAGE_KEY, true);
+      value = res ? res.value : null;
+    } catch (e) {
+      value = null;
+    }
+
+    // Fallback: if storage isn't available or came up empty, check whether
+    // this link itself was sent with the result baked in (?result=boy/girl).
+    if (!value) {
+      const params = new URLSearchParams(window.location.search);
+      const linked = params.get('result');
+      if (linked === 'boy' || linked === 'girl') value = linked;
+    }
+
+    if (!value) { show('step-couple-waiting'); return; }
+    showResult(value);
+  }
+
+  function showResult(value) {
+    show('step-result');
+    const icon = document.getElementById('result-icon');
+    const text = document.getElementById('result-text');
+    const coastalGreys = ['#aab2b8', '#8a7d68', '#c9c2b3'];
+
+    if (value === 'boy') {
+      body.style.background = '#e3ebf0';
+      body.style.backgroundImage = 'radial-gradient(circle at 50% 25%, #f2f6f9 0%, #dce7ee 55%, #c7d8e2 100%)';
+      body.style.color = '#2c4258';
+      icon.textContent = '⚓️';
+      text.textContent = "It's a boy!";
+      text.style.color = '#1f3140';
+      launchConfetti('#6fa8d8');
+      launchConfetti(coastalGreys[Math.floor(Math.random() * coastalGreys.length)]);
+    } else {
+      body.style.background = '#f5e2dc';
+      body.style.backgroundImage = 'radial-gradient(circle at 50% 25%, #fbf0ec 0%, #f5e2dc 55%, #eecbc0 100%)';
+      body.style.color = '#8f3020';
+      icon.textContent = '🎀';
+      text.textContent = "It's a girl!";
+      text.style.color = '#8f3020';
+      launchConfetti('#e8846b');
+      launchConfetti(coastalGreys[Math.floor(Math.random() * coastalGreys.length)]);
+    }
+    spawnDachshund();
+  }
+
+  // Preview shortcut: open this file with ?reveal=boy or ?reveal=girl to jump
+  // straight to that result screen without going through the friend/loading flow.
+  (function checkDebugReveal() {
+    const params = new URLSearchParams(window.location.search);
+    const debugValue = params.get('reveal');
+    if (debugValue === 'boy' || debugValue === 'girl') {
+      showResult(debugValue);
+    }
+  })();
+
+  // A link with ?result=boy/girl (the friend's backup link, or the same link
+  // reused/forwarded once Jonathan & Abbey have already revealed it to
+  // themselves) skips straight to the story/journey intro instead of the
+  // role picker. Tapping "Reveal the Gender" then plays the same journey
+  // and lands on the correct reveal — used to share with family.
+  (function routeSharedResultLink() {
+    const params = new URLSearchParams(window.location.search);
+    const linked = params.get('result');
+    const debugValue = params.get('reveal');
+    if ((linked === 'boy' || linked === 'girl') && !debugValue) {
+      show('step-couple-intro');
+    }
+  })();
+</script>
+
+
+</body>
+</html>
