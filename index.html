@@ -157,12 +157,7 @@
   <div class="step" id="step-friend-done">
     <div class="big-icon">✅</div>
     <h1>Locked in.</h1>
-    <p class="sub" id="friend-done-sub">Your part is done. Send this exact link to Jonathan &amp; Abbey and let them tap "We're Jonathan &amp; Abbey" when they're ready with the iPad/TV.</p>
-    <div id="friend-fallback-wrap" style="display:none; margin-top:6px;">
-      <p class="sub" style="margin-bottom:10px; font-size:13px;">If they're opening this as a downloaded file, send them this exact link instead — it carries the result along with it:</p>
-      <a class="reveal-link" id="friend-fallback-link" href="#" target="_blank"></a>
-      <button id="btn-copy-fallback" style="margin-top:12px;">Copy link</button>
-    </div>
+    <p class="sub">Your part is done. Send this exact link to Jonathan &amp; Abbey and let them tap "Reveal the Gender" when they're ready.</p>
   </div>
 
   <!-- STEP 3: couple journey -->
@@ -204,7 +199,12 @@
 </div>
 
 <script>
-  const STORAGE_KEY = 'jonathan-abbey-gender-reveal-result';
+  // Shared cross-device storage via a public Firebase Realtime Database.
+  // No login system needed — this project's database is set to test-mode
+  // (open read/write) specifically so the friend's device and the couple's
+  // device can both reach the same value without any backend of our own.
+  const FIREBASE_URL = 'https://gender-reveal-27cbb-default-rtdb.firebaseio.com';
+  const RESULT_ENDPOINT = `${FIREBASE_URL}/result.json`;
   const body = document.getElementById('body');
 
   function show(id) {
@@ -215,21 +215,17 @@
   // ---- role: friend ----
   document.getElementById('btn-role-friend').addEventListener('click', () => show('step-friend'));
 
-  // If the friend already submitted a result (checked via storage, or via a
-  // ?result=boy/girl link), lock the friend button so it can't be re-picked.
+  // If the friend already submitted a result, lock the friend button so it
+  // can't be re-picked.
   (async function checkAlreadySubmitted() {
     const btn = document.getElementById('btn-role-friend');
     let alreadyIn = false;
     try {
-      const res = await window.storage.get(STORAGE_KEY, true);
-      alreadyIn = !!(res && res.value);
+      const res = await fetch(RESULT_ENDPOINT);
+      const value = await res.json();
+      alreadyIn = value === 'boy' || value === 'girl';
     } catch (e) {
       alreadyIn = false;
-    }
-    if (!alreadyIn) {
-      const params = new URLSearchParams(window.location.search);
-      const linked = params.get('result');
-      if (linked === 'boy' || linked === 'girl') alreadyIn = true;
     }
     if (alreadyIn) {
       btn.textContent = 'The results are in ✓';
@@ -241,43 +237,18 @@
   async function submitResult(value) {
     const statusEl = document.getElementById('friend-status');
     statusEl.textContent = 'Saving...';
-    let storageWorked = false;
     try {
-      const res = await window.storage.set(STORAGE_KEY, value, true);
-      storageWorked = !!res;
+      await fetch(RESULT_ENDPOINT, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(value),
+      });
     } catch (e) {
-      storageWorked = false;
+      // If this fails (e.g. no internet), the couple's device simply won't
+      // have anything to show yet — nothing more we can do client-side.
     }
-
-    // Always build a fallback link that carries the result in the URL itself.
-    // This works even when window.storage isn't available (e.g. the file was
-    // downloaded and opened directly instead of viewed inside Claude).
-    const url = new URL(window.location.href);
-    url.searchParams.delete('reveal');
-    url.searchParams.set('result', value);
-    const fallbackLink = url.toString();
-
-    document.getElementById('friend-fallback-link').href = fallbackLink;
-    document.getElementById('friend-fallback-link').textContent = fallbackLink;
-    document.getElementById('friend-fallback-wrap').style.display = 'block';
-
-    if (!storageWorked) {
-      document.getElementById('friend-done-sub').textContent =
-        "Your part is done — but this browser can't save it automatically, so use the backup link below instead of the plain one.";
-    }
-
     statusEl.textContent = '';
     show('step-friend-done');
-
-    document.getElementById('btn-copy-fallback').onclick = async () => {
-      try {
-        await navigator.clipboard.writeText(fallbackLink);
-        document.getElementById('btn-copy-fallback').textContent = 'Copied!';
-        setTimeout(() => { document.getElementById('btn-copy-fallback').textContent = 'Copy link'; }, 1500);
-      } catch (e) {
-        // Clipboard API may be blocked; the link is still visible/selectable.
-      }
-    };
   }
   document.getElementById('btn-submit-boy').addEventListener('click', () => submitResult('boy'));
   document.getElementById('btn-submit-girl').addEventListener('click', () => submitResult('girl'));
@@ -399,18 +370,11 @@
 
     let value = null;
     try {
-      const res = await window.storage.get(STORAGE_KEY, true);
-      value = res ? res.value : null;
+      const res = await fetch(RESULT_ENDPOINT);
+      const fetched = await res.json();
+      if (fetched === 'boy' || fetched === 'girl') value = fetched;
     } catch (e) {
       value = null;
-    }
-
-    // Fallback: if storage isn't available or came up empty, check whether
-    // this link itself was sent with the result baked in (?result=boy/girl).
-    if (!value) {
-      const params = new URLSearchParams(window.location.search);
-      const linked = params.get('result');
-      if (linked === 'boy' || linked === 'girl') value = linked;
     }
 
     if (!value) { show('step-couple-waiting'); return; }
@@ -452,20 +416,6 @@
     const debugValue = params.get('reveal');
     if (debugValue === 'boy' || debugValue === 'girl') {
       showResult(debugValue);
-    }
-  })();
-
-  // A link with ?result=boy/girl (the friend's backup link, or the same link
-  // reused/forwarded once Jonathan & Abbey have already revealed it to
-  // themselves) skips straight to the story/journey intro instead of the
-  // role picker. Tapping "Reveal the Gender" then plays the same journey
-  // and lands on the correct reveal — used to share with family.
-  (function routeSharedResultLink() {
-    const params = new URLSearchParams(window.location.search);
-    const linked = params.get('result');
-    const debugValue = params.get('reveal');
-    if ((linked === 'boy' || linked === 'girl') && !debugValue) {
-      show('step-couple-intro');
     }
   })();
 </script>
